@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -106,14 +107,24 @@ namespace AttendanceSystem
             return DateTime.Today;
         }
 
-        public static string ReadAttendanceStatus()
+        // Read attendance status. If inline is true, print choices on the same line (keeps menu "on the side").
+        // indentSpaces prefixes the inline menu so it can be placed under a specific column.
+        public static string ReadAttendanceStatus(bool inline = false, int indentSpaces = 0)
         {
             while (true)
             {
-                Console.WriteLine("1. Present");
-                Console.WriteLine("2. Absent");
-                Console.WriteLine("3. Late");
-                Console.Write("Select attendance status: ");
+                if (inline)
+                {
+                    string indent = new string(' ', Math.Max(0, indentSpaces));
+                    Console.Write(indent + "1. Present   2. Absent   3. Late   Select attendance status: ");
+                }
+                else
+                {
+                    Console.WriteLine("1. Present");
+                    Console.WriteLine("2. Absent");
+                    Console.WriteLine("3. Late");
+                    Console.Write("Select attendance status: ");
+                }
 
                 string? choice = Console.ReadLine();
 
@@ -126,7 +137,17 @@ namespace AttendanceSystem
                     case "3":
                         return "Late";
                     default:
-                        Console.WriteLine("Invalid choice. Please select 1, 2, or 3.");
+                        {
+                            if (inline)
+                            {
+                                string indent = new string(' ', Math.Max(0, indentSpaces));
+                                Console.WriteLine(indent + "Invalid choice. Please select 1, 2, or 3.");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid choice. Please select 1, 2, or 3.");
+                            }
+                        }
                         break;
                 }
             }
@@ -241,19 +262,20 @@ namespace AttendanceSystem
             }
 
             Console.WriteLine($"Current name: {student.Name}");
-            string newName = Validation.ReadNonEmptyString("Enter new name (leave blank to keep): ");
+            Console.Write("Enter new name (leave blank to keep): ");
+            string? newName = Console.ReadLine();
+
             Console.WriteLine($"Current course: {student.Course}");
-            string newCourse = Validation.ReadNonEmptyString("Enter new course (leave blank to keep): ");
+            Console.Write("Enter new course (leave blank to set blank): ");
+            string? newCourse = Console.ReadLine();
 
             if (!string.IsNullOrWhiteSpace(newName))
             {
-                student.Name = newName;
+                student.Name = newName.Trim();
             }
 
-            if (!string.IsNullOrWhiteSpace(newCourse))
-            {
-                student.Course = newCourse;
-            }
+
+            student.Course = newCourse?.Trim() ?? string.Empty;
 
             Console.WriteLine("Student information updated successfully.");
         }
@@ -279,8 +301,19 @@ namespace AttendanceSystem
         {
             Console.WriteLine();
             Console.WriteLine("--- SEARCH STUDENT ---");
-            Console.Write("Search by ID or Name? (id/name): ");
-            string option = Console.ReadLine() ?? string.Empty;
+            string option;
+            while (true)
+            {
+                Console.Write("Search by ID or Name? (id/name): ");
+                option = Console.ReadLine() ?? string.Empty;
+
+                if (option.Equals("id", StringComparison.OrdinalIgnoreCase) || option.Equals("name", StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                Console.WriteLine("Invalid option. Please enter 'id' or 'name'.");
+            }
 
             if (option.Equals("id", StringComparison.OrdinalIgnoreCase))
             {
@@ -328,11 +361,24 @@ namespace AttendanceSystem
             }
 
             DateTime date = Validation.ReadValidDate();
+            int idWidth = 6;
+            int nameWidth = 30;
+            int statusWidth = 12;
+
+            Console.WriteLine();
+            Console.WriteLine($"Date: {date:yyyy-MM-dd}");
+            Console.WriteLine();
+            // Header
+            Console.WriteLine($"{"ID",-6} {"Name",-30} {"Status",-12}");
+            Console.WriteLine(new string('-', idWidth + nameWidth + statusWidth + 2));
 
             foreach (Student student in students)
             {
-                Console.Write($"{student.StudentId}\t{student.Name}\tAttendance status for {date:yyyy-MM-dd}: ");
-                string status = Validation.ReadAttendanceStatus();
+                Console.Write($"{student.StudentId,-6} {student.Name,-30}");
+                Console.WriteLine();
+
+                int indent = idWidth + nameWidth + 1;
+                string status = Validation.ReadAttendanceStatus(true, indent);
 
                 attendanceRecords.RemoveAll(record => record.StudentId == student.StudentId && record.Date.Date == date.Date);
                 attendanceRecords.Add(new AttendanceRecord
@@ -342,8 +388,11 @@ namespace AttendanceSystem
                     Status = status
                 });
 
-                Console.WriteLine($"Attendance recorded for {student.Name}: {status}");
+                Console.WriteLine($"{"",-6} {"",-30} {status,-12}");
+                Console.WriteLine();
             }
+
+            Console.WriteLine("All attendance records updated successfully.");
         }
 
         private static void ViewAttendance()
